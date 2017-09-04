@@ -9,7 +9,7 @@
     "Octopus.Action.Script.Syntax": "PowerShell",
     "Octopus.Action.Script.ScriptSource": "Inline",
     "Octopus.Action.RunOnServer": "false",
-    "Octopus.Action.Script.ScriptBody": "[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12\r\n$versions = Invoke-WebRequest https://octopusdeploy.com/download/upgrade/v3 -UseBasicParsing | ConvertFrom-Json\r\n$version = $versions[-1].Version\r\n$tempFile = [System.IO.Path]::GetTempFileName()\r\n\r\nWrite-Host \"Downloading Octopus $version\"\r\ntry\r\n{\r\n    (New-Object System.Net.WebClient).DownloadFile(\"https://download.octopusdeploy.com/octopus/Octopus.$version-x64.msi\", $tempFile)\r\n}\r\ncatch\r\n{\r\n    echo $_.Exception|format-list -force\r\n}\r\n\r\nWrite-Host \"Stopping Server\"\r\n. 'C:\\Program Files\\Octopus Deploy\\Octopus\\Octopus.Server.exe' service --stop --console --instance $InstanceName\r\n\r\nWrite-Host \"Installing\"\r\nmsiexec /i $tempFile /quiet | Out-Null\r\n\r\nWrite-Host \"Deleting installer\"\r\nRemove-Item $tempFile\r\n\r\nWrite-Host \"Starting Server\"\r\n. 'C:\\Program Files\\Octopus Deploy\\Octopus\\Octopus.Server.exe' service --start --console --instance $InstanceName\r\n\r\n"
+    "Octopus.Action.Script.ScriptBody": "[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12\n$versions = Invoke-WebRequest https://octopusdeploy.com/download/upgrade/v3 -UseBasicParsing | ConvertFrom-Json\n$version = $versions[-1].Version\n$tempFile = [System.IO.Path]::GetTempFileName()\n$InstalledVersion = (get-item \"$InstallPath\\Octopus.Server.exe\").VersionInfo.fileversion\n\nif([version]$version -gt [version]$InstalledVersion) {\n        \n    Write-Host \"Downloading Octopus $version\"\n    try\n    {\n        (New-Object System.Net.WebClient).DownloadFile(\"https://download.octopusdeploy.com/octopus/Octopus.$version-x64.msi\", $tempFile)\n    }\n    catch\n    {\n        echo $_.Exception|format-list -force\n    }\n    \n    Write-Host \"Stopping Server\"\n    . \"$InstallPath\\Octopus.Server.exe\" service --stop --console --instance $InstanceName\n    \n    Write-Host \"Installing\"\n    msiexec /i $tempFile /quiet | Out-Null\n    \n    Write-Host \"Deleting installer\"\n    Remove-Item $tempFile\n    \n    Write-Host \"Starting Server\"\n    . \"$InstallPath\\Octopus.Server.exe\" service --start --console --instance $InstanceName\n}\nelse {\n    Write-host \"Octopus already updated to version: $version\"   \n}\n\n",
   },
   "Parameters": [
     {
@@ -18,6 +18,17 @@
       "Label": "Instance Name",
       "HelpText": "The name of your octopus instance. For the default instance use `OctopusServer`.",
       "DefaultValue": "OctopusServer",
+      "DisplaySettings": {
+        "Octopus.ControlType": "SingleLineText"
+      },
+      "Links": {}
+    },
+    {
+      "Id": "18ede5ad-24a8-4796-a6e2-1b49a4cd7df2",
+      "Name": "InstallPath",
+      "Label": "InstallPath",
+      "HelpText": "The Installation path of the Octopus server.",
+      "DefaultValue": "C:\\Program Files\\Octopus Deploy\\Octopus",
       "DisplaySettings": {
         "Octopus.ControlType": "SingleLineText"
       },
